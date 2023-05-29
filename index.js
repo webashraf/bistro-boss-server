@@ -29,17 +29,26 @@ async function run() {
     await client.connect();
     const menuCollection = client.db("bistroBossDb").collection("menu");
     const reviewsCollection = client.db("bistroBossDb").collection("reviews");
+    const cartsCollection = client.db("bistroBossDb").collection("carts");
 
 
     app.get('/menu', async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
     })
+
     app.get('/reviews', async (req, res) => {
       const result = await reviewsCollection.find().toArray();
       res.send(result);
     })
 
+    // Cart collection //
+    app.post('/carts', async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await cartsCollection.insertOne(data);
+      res.send(result);
+    })
 
 
 
