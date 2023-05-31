@@ -5,12 +5,36 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config()
 const port = process.env.PORT || 5000;
+const JWT_SECRETE_TOKEN = process.env.JWT_SECRETE_TOKEN || "";
+
+
 
 // Middle were //
 app.use(cors());
 app.use(express.json());
 
-const JWT_SECRETE_TOKEN = process.env.JWT_SECRETE_TOKEN || "";
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  // console.log(authorization);
+  if (!authorization) {
+    console.log("Fast error");
+    return res.status(401).send( {error: true, message: "unauthorized access"});
+  }
+  else{
+    const token = authorization.split(' ')[1];
+    console.log("token222________", JWT_SECRETE_TOKEN);
+    jwt.verify(token, JWT_SECRETE_TOKEN, (error, decoded) => {
+      // console.log("Errrrrrrrrrrrrrrrrrrrror", error);
+      if (error) {
+        console.log("Second error");
+        return res.status(401).send({error: true, message: error});
+      }
+      req.decoded = decoded;
+      next()
+    })
+  }
+}
+
 
 
 
@@ -74,10 +98,6 @@ async function run() {
 
 
 
-
-
-
-
     app.get('/menu', async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
@@ -88,10 +108,16 @@ async function run() {
       res.send(result);
     })
 
+
     // Cart collection //
-    app.get('/carts', async (req, res) => {
+    app.get('/carts', verifyJWT,async (req, res) => {
       const email = req.query.email;
       // console.log(email);
+      const decodedEmail = req.decoded.email;
+      if (!decodedEmail) {
+        return res.status(403).send({error: true, message: "forbidden access"})
+        console.log("third error");
+      }
       const query = { email: email }
       const result = await cartsCollection.find(query).toArray();
       res.send(result);
