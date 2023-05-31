@@ -34,6 +34,11 @@ async function run() {
 
 
     // User collection data management //
+    app.get('/users', async (req, res) => {
+      const result = await userCollection.find({}).toArray();
+      res.send(result);
+    })
+
     app.post('/user', async (req, res) => {
       const user = req.body;
       const query = { email: user.email }
@@ -45,6 +50,18 @@ async function run() {
         const result = await userCollection.insertOne(user);
         res.send(result);
       }
+    })
+
+    app.patch('/user/admin/:id', async (req, res) =>{
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const updatedAdmin = {
+        $set: {
+          role: "admin"
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedAdmin);
+      res.send(result);
     })
 
 
