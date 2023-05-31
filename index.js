@@ -27,9 +27,30 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const userCollection = client.db("bistroBossDb").collection("user");
     const menuCollection = client.db("bistroBossDb").collection("menu");
     const reviewsCollection = client.db("bistroBossDb").collection("reviews");
     const cartsCollection = client.db("bistroBossDb").collection("carts");
+
+
+    // User collection data management //
+    app.post('/user', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email }
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send("user already exists");
+      }
+      else {
+        const result = await userCollection.insertOne(user);
+        res.send(result);
+      }
+    })
+
+
+
+
+
 
 
     app.get('/menu', async (req, res) => {
@@ -46,7 +67,7 @@ async function run() {
     app.get('/carts', async (req, res) => {
       const email = req.query.email;
       // console.log(email);
-      const query = {email : email}
+      const query = { email: email }
       const result = await cartsCollection.find(query).toArray();
       res.send(result);
     });
@@ -56,12 +77,12 @@ async function run() {
       const result = await cartsCollection.insertOne(data);
       res.send(result);
     })
-    app.delete('/carts/:id', async(req, res) => {
+    app.delete('/carts/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
-      // const query = {_id: new ObjectId(id)};
-      // const result = await cartsCollection.deleteOne(query);
-      // res.send(result);
+      const query = { _id: new ObjectId(id) };
+      const result = await cartsCollection.deleteOne(query);
+      res.send(result);
     })
 
 
@@ -105,10 +126,10 @@ run().catch(console.dir);
 
 
 
-app.get('/', (req, res)=> {
-    res.send("Bistro boss is running");
+app.get('/', (req, res) => {
+  res.send("Bistro boss is running");
 })
 
-app.listen(port, ()=> {
-    console.log(`http://localhost:${port}`);
+app.listen(port, () => {
+  console.log(`http://localhost:${port}`);
 });
