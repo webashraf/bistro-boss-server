@@ -21,14 +21,18 @@ const verifyJWT = (req, res, next) => {
     return res.status(401).send( {error: true, message: "unauthorized access"});
   }
   else{
+
     const token = authorization.split(' ')[1];
     console.log("token222________", JWT_SECRETE_TOKEN);
+
+
     jwt.verify(token, JWT_SECRETE_TOKEN, (error, decoded) => {
       // console.log("Errrrrrrrrrrrrrrrrrrrror", error);
       if (error) {
-        console.log("Second error");
+        console.log("Second error", error);
         return res.status(401).send({error: true, message: error});
       }
+
       req.decoded = decoded;
       next()
     })
@@ -68,6 +72,20 @@ async function run() {
     // User collection data management //
     app.get('/users', async (req, res) => {
       const result = await userCollection.find({}).toArray();
+      res.send(result);
+    })
+
+    app.get('/users/admin/:email', verifyJWT, async (req, res) =>{
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        return res.status(403).send({error: true, message: 'Invalid email'});
+      }
+
+
+      const query = {email: email};
+      const user = await userCollection.findOne(query);
+      const result = {admin: user?.role === 'admin'};
       res.send(result);
     })
 
