@@ -15,7 +15,7 @@ app.use(express.json());
 
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
-  // console.log(authorization);
+  console.log( "18", authorization);
   if (!authorization) {
     console.log("Fast error");
     return res.status(401).send( {error: true, message: "unauthorized access"});
@@ -66,6 +66,7 @@ async function run() {
     app.post('/jwt', (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, JWT_SECRETE_TOKEN, {expiresIn: '1hr'});
+      console.log(token);
       res.send({token})
     })
 
