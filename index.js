@@ -1,9 +1,10 @@
+require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.STRIPE_PAYMENT_KEY); 
 const app = express();
 const cors = require('cors');
-require('dotenv').config()
 const port = process.env.PORT || 5000;
 const JWT_SECRETE_TOKEN = process.env.JWT_SECRETE_TOKEN || "";
 
@@ -15,18 +16,12 @@ app.use(express.json());
 
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
-// <<<<<<< HEAD
-// =======
-  console.log( "18", authorization);
-// >>>>>>> 3e114447988e2e2c2d523c5db3a743ebd99c10cb
+  console.log("authorization" ,authorization);
   if (!authorization) {
     return res.status(401).send( {error: true, message: "unauthorized access"});
   }
   else{
-
     const token = authorization.split(' ')[1];
-
-
     jwt.verify(token, JWT_SECRETE_TOKEN, (error, decoded) => {
       if (error) {
         return res.status(401).send({error: true, message: error});
@@ -61,6 +56,10 @@ async function run() {
     const menuCollection = client.db("bistroBossDb").collection("menu");
     const reviewsCollection = client.db("bistroBossDb").collection("reviews");
     const cartsCollection = client.db("bistroBossDb").collection("carts");
+    const paymentCollection = client.db("bistroBossDb").collection("payment");
+
+
+
 
 
     // Secure Admin  //
@@ -81,6 +80,55 @@ async function run() {
       console.log(token);
       res.send({token})
     })
+
+       // Stripe Payment Method //
+       app.post("/create-payment-intent", verifyJWT,async (req, res) => {
+        const { price } = req.body;
+        console.log(price);
+        const amount = price * 100;
+        const finalAmount = parseInt(amount);
+        console.log(amount, finalAmount);
+        
+        // Create a PaymentIntent with the order amount and currency
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: finalAmount,
+          currency: "usd",
+          payment_method_types: ['card'], 
+        });
+      
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
+      });
+
+      app.post('/payment', verifyJWT,async(req, res) => {
+        const payment = req.body;
+
+        const query = {_id: {$in: payment.cartsItems.map(id => new ObjectId(id))}}
+
+        const deleteResult = await cartsCollection.deleteMany(query);
+
+
+        const result = await paymentCollection.insertOne(payment);
+        res.send({result, deleteResult});
+      })
+
+
+      // Admin page data management functions //
+      app.get('/user-stats', async (req, res) => {
+        const user = await userCollection.estimatedDocumentCount();
+        const products = await menuCollection.estimatedDocumentCount();
+        const order = await paymentCollection.estimatedDocumentCount();
+        const revenue = await paymentCollection.find().toArray();
+        const totalRevenue = revenue.reduce((preValue, currentValue) => preValue + currentValue.price,0)
+        res.send({
+          user,
+          products,
+          order,
+          totalRevenue,
+        })
+      })
+
 
     // User collection data management //
     app.get('/users', verifyJWT, verifyAdmin,async (req, res) => {
